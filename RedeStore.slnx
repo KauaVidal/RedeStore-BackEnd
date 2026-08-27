@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/RedeStore.Api/RedeStore.Api.csproj" />
+    <Project Path="src/RedeStore.Application/RedeStore.Application.csproj" />
+    <Project Path="src/RedeStore.Domain/RedeStore.Domain.csproj" />
+    <Project Path="src/RedeStore.Infrastructure/RedeStore.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RedeStore.IntegrationTests/RedeStore.IntegrationTests.csproj" />
+    <Project Path="tests/RedeStore.UnitTests/RedeStore.UnitTests.csproj" />
+  </Folder>
+</Solution>

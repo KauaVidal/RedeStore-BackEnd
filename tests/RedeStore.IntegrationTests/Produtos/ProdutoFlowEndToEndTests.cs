@@ -85,6 +85,13 @@ public class ProdutoFlowEndToEndTests
         Assert.Equal(["Azul"], atualizado.Cores);
         Assert.Single(atualizado.Variacoes);
 
+        var detalheAposAtualizarResponse = await _client.GetAsync($"/produtos/{criado.Id}");
+        detalheAposAtualizarResponse.EnsureSuccessStatusCode();
+        var detalheAposAtualizar = await detalheAposAtualizarResponse.Content.ReadFromJsonAsync<ProdutoDto>();
+        Assert.Equal(["U"], detalheAposAtualizar!.Tamanhos);
+        Assert.Equal(["Azul"], detalheAposAtualizar.Cores);
+        Assert.Single(detalheAposAtualizar.Variacoes);
+
         var deletarResponse = await clienteAdmin.DeleteAsync($"/produtos/{criado.Id}");
         Assert.Equal(HttpStatusCode.NoContent, deletarResponse.StatusCode);
 
@@ -107,6 +114,30 @@ public class ProdutoFlowEndToEndTests
         var response = await _client.DeleteAsync($"/produtos/{Guid.NewGuid()}");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PostProdutos_ComTokenDeUsuarioNaoAdmin_Retorna403()
+    {
+        var email = $"{Guid.NewGuid()}@teste.com";
+        await _client.PostAsJsonAsync("/auth/cadastro", new CadastroRequest("Jovem", email, "senha12345"));
+
+        var loginResponse = await _client.PostAsJsonAsync("/auth/login", new LoginRequest(email, "senha12345"));
+        var login = await loginResponse.Content.ReadFromJsonAsync<AuthResponse>();
+
+        using var clienteNaoAdmin = _factory.CreateClient();
+        clienteNaoAdmin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", login!.Token);
+
+        var response = await clienteNaoAdmin.PostAsJsonAsync("/produtos", new CriarProdutoRequest(
+            Nome: $"Camiseta {Guid.NewGuid()}",
+            Categoria: "camisetas",
+            Preco: 79.90m,
+            Descricao: "Camiseta oficial da Rede",
+            Fotos: ["https://exemplo.com/foto.jpg"],
+            Destaque: true,
+            Variacoes: [new VariacaoRequest("M", "Preto", 10)]));
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [Fact]

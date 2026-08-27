@@ -22,6 +22,11 @@
     <ProjectReference Include="..\..\src\RedeStore.Domain\RedeStore.Domain.csproj" />
     <ProjectReference Include="..\..\src\RedeStore.Application\RedeStore.Application.csproj" />
     <ProjectReference Include="..\..\src\RedeStore.Infrastructure\RedeStore.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\RedeStore.Api\RedeStore.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
 </Project>

@@ -9,6 +9,9 @@ using RedeStore.Application.Auth;
 using RedeStore.Application.Auth.Dtos;
 using RedeStore.Application.Auth.Validators;
 using RedeStore.Application.Common;
+using RedeStore.Application.Produtos;
+using RedeStore.Application.Produtos.Dtos;
+using RedeStore.Application.Produtos.Validators;
 using RedeStore.Infrastructure.Auth;
 using RedeStore.Infrastructure.Email;
 using RedeStore.Infrastructure.Persistence;
@@ -33,6 +36,10 @@ builder.Services.AddSingleton<IValidator<LoginRequest>, LoginRequestValidator>()
 builder.Services.AddSingleton<IValidator<AtualizarPerfilRequest>, AtualizarPerfilRequestValidator>();
 builder.Services.AddSingleton<IValidator<RecuperarSenhaRequest>, RecuperarSenhaRequestValidator>();
 builder.Services.AddSingleton<IValidator<RedefinirSenhaRequest>, RedefinirSenhaRequestValidator>();
+
+builder.Services.AddScoped<IProdutoService, ProdutoService>();
+builder.Services.AddSingleton<IValidator<CriarProdutoRequest>, CriarProdutoRequestValidator>();
+builder.Services.AddSingleton<IValidator<AtualizarProdutoRequest>, AtualizarProdutoRequestValidator>();
 
 builder.Services.Configure<FrontendOptions>(builder.Configuration.GetSection(FrontendOptions.SectionName));
 builder.Services.Configure<ResendOptions>(builder.Configuration.GetSection(ResendOptions.SectionName));

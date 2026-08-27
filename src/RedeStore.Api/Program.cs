@@ -117,6 +117,7 @@ app.MapGet("/health", async (RedeStoreDbContext db) =>
 
 app.MapAuthEndpoints();
 app.MapUsuariosEndpoints();
+app.MapProdutosEndpoints();
 
 app.Run();
 

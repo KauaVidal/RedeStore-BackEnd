@@ -11,6 +11,8 @@ public sealed class RedeStoreDbContext : DbContext
 
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<Produto> Produtos => Set<Produto>();
+    public DbSet<Variacao> Variacoes => Set<Variacao>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

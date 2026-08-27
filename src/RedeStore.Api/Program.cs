@@ -25,6 +25,7 @@ builder.Services.AddDbContext<RedeStoreDbContext>(options =>
 
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
+builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<IValidator<CadastroRequest>, CadastroRequestValidator>();

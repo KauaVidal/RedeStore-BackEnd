@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using RedeStore.Api.Endpoints;
 using RedeStore.Api.Middleware;
 using RedeStore.Application.Auth;
@@ -57,14 +58,14 @@ builder.Services.AddOptions<JwtOptions>()
     .ValidateOnStart();
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 
-var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
-    ?? throw new InvalidOperationException("Configuração 'Jwt' ausente. Configure via dotnet user-secrets.");
-
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+    .AddJwtBearer();
+
+builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+    .Configure<IOptions<JwtOptions>>((options, jwtOptions) =>
     {
         options.MapInboundClaims = false;
-        options.TokenValidationParameters = JwtTokenValidationParametersFactory.Create(jwtOptions);
+        options.TokenValidationParameters = JwtTokenValidationParametersFactory.Create(jwtOptions.Value);
     });
 
 builder.Services.AddAuthorization(options =>

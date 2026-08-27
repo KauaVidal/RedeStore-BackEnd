@@ -4,6 +4,7 @@ using RedeStore.Api.Middleware;
 using RedeStore.Application.Common;
 using RedeStore.Infrastructure.Auth;
 using RedeStore.Infrastructure.Persistence;
+using RedeStore.Infrastructure.Persistence.Repositories;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +16,9 @@ var connectionString = builder.Configuration.GetConnectionString("Default")
 
 builder.Services.AddDbContext<RedeStoreDbContext>(options =>
     options.UseNpgsql(connectionString));
+
+builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+builder.Services.AddScoped<IPasswordResetTokenRepository, PasswordResetTokenRepository>();
 
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 

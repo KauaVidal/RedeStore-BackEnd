@@ -9,4 +9,6 @@ public interface IAuthService
     Task<UsuarioDto> ObterPorIdAsync(Guid id, CancellationToken ct);
     Task<UsuarioDto> ObterComAutorizacaoAsync(Guid idSolicitado, Guid idUsuarioLogado, bool ehAdmin, CancellationToken ct);
     Task<UsuarioDto> AtualizarPerfilAsync(Guid usuarioId, AtualizarPerfilRequest request, CancellationToken ct);
+    Task RecuperarSenhaAsync(string email, CancellationToken ct);
+    Task RedefinirSenhaAsync(string token, string novaSenha, CancellationToken ct);
 }

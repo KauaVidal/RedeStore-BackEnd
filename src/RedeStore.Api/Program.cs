@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +8,7 @@ using RedeStore.Application.Auth.Dtos;
 using RedeStore.Application.Auth.Validators;
 using RedeStore.Application.Common;
 using RedeStore.Infrastructure.Auth;
+using RedeStore.Infrastructure.Email;
 using RedeStore.Infrastructure.Persistence;
 using RedeStore.Infrastructure.Persistence.Repositories;
 using Scalar.AspNetCore;
@@ -28,6 +30,20 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<IValidator<CadastroRequest>, CadastroRequestValidator>();
 builder.Services.AddSingleton<IValidator<LoginRequest>, LoginRequestValidator>();
 builder.Services.AddSingleton<IValidator<AtualizarPerfilRequest>, AtualizarPerfilRequestValidator>();
+builder.Services.AddSingleton<IValidator<RecuperarSenhaRequest>, RecuperarSenhaRequestValidator>();
+builder.Services.AddSingleton<IValidator<RedefinirSenhaRequest>, RedefinirSenhaRequestValidator>();
+
+builder.Services.Configure<FrontendOptions>(builder.Configuration.GetSection(FrontendOptions.SectionName));
+builder.Services.Configure<ResendOptions>(builder.Configuration.GetSection(ResendOptions.SectionName));
+
+var resendApiKey = builder.Configuration["Resend:ApiKey"]
+    ?? throw new InvalidOperationException("Resend:ApiKey ausente. Configure via dotnet user-secrets.");
+
+builder.Services.AddHttpClient<IEmailSender, ResendEmailSender>(client =>
+{
+    client.BaseAddress = new Uri("https://api.resend.com/");
+    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", resendApiKey);
+});
 
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 

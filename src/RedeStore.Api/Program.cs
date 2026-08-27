@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using RedeStore.Api.Endpoints;
 using RedeStore.Api.Middleware;
 using RedeStore.Application.Auth;
 using RedeStore.Application.Auth.Dtos;
@@ -106,6 +107,9 @@ app.MapGet("/health", async (RedeStoreDbContext db) =>
         ? Results.Ok(new { status = "healthy", database = "connected" })
         : Results.Problem("Não foi possível conectar ao banco de dados.", statusCode: StatusCodes.Status503ServiceUnavailable);
 });
+
+app.MapAuthEndpoints();
+app.MapUsuariosEndpoints();
 
 app.Run();
 

@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 
@@ -15,5 +16,6 @@ public static class JwtTokenValidationParametersFactory
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.SigningKey)),
         ValidateLifetime = true,
         ClockSkew = TimeSpan.FromMinutes(1),
+        NameClaimType = JwtRegisteredClaimNames.Sub,
     };
 }

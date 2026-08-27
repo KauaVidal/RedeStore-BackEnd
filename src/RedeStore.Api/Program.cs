@@ -10,12 +10,21 @@ var builder = WebApplication.CreateBuilder(args);
 
 const string FrontendCorsPolicy = "FrontendCorsPolicy";
 
+var connectionString = builder.Configuration.GetConnectionString("Default")
+    ?? throw new InvalidOperationException("ConnectionStrings:Default ausente. Configure via dotnet user-secrets.");
+
 builder.Services.AddDbContext<RedeStoreDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Default")));
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddSingleton<IPasswordHasher, PasswordHasher>();
 
-builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.AddOptions<JwtOptions>()
+    .Bind(builder.Configuration.GetSection(JwtOptions.SectionName))
+    .Validate(o => !string.IsNullOrWhiteSpace(o.SigningKey) && System.Text.Encoding.UTF8.GetByteCount(o.SigningKey) >= 32,
+              "Jwt:SigningKey ausente ou com menos de 32 bytes (necessário para HMAC-SHA256).")
+    .Validate(o => !string.IsNullOrWhiteSpace(o.Issuer) && !string.IsNullOrWhiteSpace(o.Audience),
+              "Jwt:Issuer e Jwt:Audience são obrigatórios.")
+    .ValidateOnStart();
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 
 var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
@@ -24,6 +33,7 @@ var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<Jw
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = JwtTokenValidationParametersFactory.Create(jwtOptions);
     });
 

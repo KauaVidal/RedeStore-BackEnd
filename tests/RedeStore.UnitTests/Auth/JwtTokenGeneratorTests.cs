@@ -39,7 +39,9 @@ public class JwtTokenGeneratorTests
         var token = _sut.GenerateToken(usuarioId, "admin@rede.com", "admin");
         var validationParameters = JwtTokenValidationParametersFactory.Create(Options);
 
-        var principal = new JwtSecurityTokenHandler().ValidateToken(token, validationParameters, out _);
+        var handler = new JwtSecurityTokenHandler();
+        handler.InboundClaimTypeMap.Clear();
+        var principal = handler.ValidateToken(token, validationParameters, out _);
 
         Assert.Equal("admin@rede.com", principal.FindFirst(JwtRegisteredClaimNames.Email)!.Value);
         Assert.Equal("admin", principal.FindFirst(ClaimTypes.Role)!.Value);

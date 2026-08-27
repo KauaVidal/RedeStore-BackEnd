@@ -13,7 +13,7 @@ using RedeStore.Infrastructure.Persistence;
 namespace RedeStore.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(RedeStoreDbContext))]
-    [Migration("20260827191511_AdicionarProdutos")]
+    [Migration("20260827193242_AdicionarProdutos")]
     partial class AdicionarProdutos
     {
         /// <inheritdoc />
@@ -139,7 +139,6 @@ namespace RedeStore.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("RedeStore.Domain.Entities.Variacao", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
                     b.Property<string>("Cor")

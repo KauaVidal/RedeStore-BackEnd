@@ -15,6 +15,8 @@ public sealed class RedeStoreDbContext : DbContext
     public DbSet<Variacao> Variacoes => Set<Variacao>();
     public DbSet<Evento> Eventos => Set<Evento>();
     public DbSet<Inscricao> Inscricoes => Set<Inscricao>();
+    public DbSet<Pedido> Pedidos => Set<Pedido>();
+    public DbSet<ItemPedido> ItensPedido => Set<ItemPedido>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

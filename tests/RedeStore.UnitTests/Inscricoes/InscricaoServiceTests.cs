@@ -1,6 +1,7 @@
 using RedeStore.Application.Inscricoes;
 using RedeStore.Domain.Entities;
 using RedeStore.Domain.Exceptions;
+using RedeStore.UnitTests.Common;
 using RedeStore.UnitTests.Eventos;
 using Xunit;
 

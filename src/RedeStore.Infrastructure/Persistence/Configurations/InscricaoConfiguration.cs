@@ -12,5 +12,9 @@ public class InscricaoConfiguration : IEntityTypeConfiguration<Inscricao>
         builder.HasKey(i => i.Id);
         builder.Property(i => i.Status).HasConversion<string>().HasMaxLength(20);
         builder.Property(i => i.ValorPago).HasPrecision(10, 2);
+        builder.HasOne<Usuario>().WithMany().HasForeignKey(i => i.UsuarioId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(i => new { i.EventoId, i.UsuarioId })
+            .IsUnique()
+            .HasFilter("\"Status\" = 'Confirmada'");
     }
 }

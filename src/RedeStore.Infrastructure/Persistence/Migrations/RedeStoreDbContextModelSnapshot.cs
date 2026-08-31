@@ -88,7 +88,11 @@ namespace RedeStore.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EventoId");
+                    b.HasIndex("UsuarioId");
+
+                    b.HasIndex("EventoId", "UsuarioId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 'Confirmada'");
 
                     b.ToTable("Inscricoes", (string)null);
                 });
@@ -236,6 +240,12 @@ namespace RedeStore.Infrastructure.Persistence.Migrations
                     b.HasOne("RedeStore.Domain.Entities.Evento", null)
                         .WithMany("Inscricoes")
                         .HasForeignKey("EventoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("RedeStore.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

@@ -1,6 +1,6 @@
 using RedeStore.Application.Common;
 
-namespace RedeStore.UnitTests.Inscricoes;
+namespace RedeStore.UnitTests.Common;
 
 public sealed class FakeUnitOfWork : IUnitOfWork
 {

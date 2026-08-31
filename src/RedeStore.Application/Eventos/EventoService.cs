@@ -8,10 +8,12 @@ namespace RedeStore.Application.Eventos;
 public sealed class EventoService : IEventoService
 {
     private readonly IEventoRepository _eventoRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public EventoService(IEventoRepository eventoRepository)
+    public EventoService(IEventoRepository eventoRepository, IUnitOfWork unitOfWork)
     {
         _eventoRepository = eventoRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<List<EventoDto>> ListarAsync(bool apenasFuturos, CancellationToken ct)
@@ -57,6 +59,16 @@ public sealed class EventoService : IEventoService
         var evento = await _eventoRepository.BuscarPorIdAsync(id, ct)
             ?? throw new EventoNaoEncontradoException($"Evento '{id}' não encontrado.");
 
+        if (request.VagasTotais is not null)
+        {
+            var vagasConfirmadas = evento.Inscricoes.Count(i => i.Status == StatusInscricao.Confirmada);
+            if (request.VagasTotais.Value < vagasConfirmadas)
+            {
+                throw new EventoVagasTotaisInsuficientesException(
+                    $"Não é possível reduzir vagasTotais para {request.VagasTotais.Value}: há {vagasConfirmadas} inscrições confirmadas.");
+            }
+        }
+
         if (request.Titulo is not null)
         {
             evento.Titulo = request.Titulo;
@@ -98,16 +110,22 @@ public sealed class EventoService : IEventoService
 
     public async Task RemoverAsync(Guid id, CancellationToken ct)
     {
-        var evento = await _eventoRepository.BuscarPorIdAsync(id, ct)
+        await using var transacao = await _unitOfWork.IniciarTransacaoAsync(ct);
+
+        var resultadoLock = await _eventoRepository.LockAndCountInscricoesConfirmadasAsync(id, ct)
             ?? throw new EventoNaoEncontradoException($"Evento '{id}' não encontrado.");
 
-        if (evento.Inscricoes.Any(i => i.Status == StatusInscricao.Confirmada))
+        if (resultadoLock.VagasConfirmadas > 0)
         {
             throw new EventoComInscricoesConfirmadasException(
                 $"Evento '{id}' tem inscrições confirmadas e não pode ser removido.");
         }
 
+        var evento = await _eventoRepository.BuscarPorIdAsync(id, ct)
+            ?? throw new EventoNaoEncontradoException($"Evento '{id}' não encontrado.");
+
         await _eventoRepository.RemoverAsync(evento, ct);
+        await transacao.ConfirmarAsync(ct);
     }
 
     private static int CalcularVagasRestantes(Evento evento) =>

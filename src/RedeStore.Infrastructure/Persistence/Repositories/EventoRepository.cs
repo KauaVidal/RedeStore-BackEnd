@@ -55,7 +55,6 @@ public sealed class EventoRepository : IEventoRepository
 
     public async Task AtualizarAsync(Evento evento, CancellationToken ct)
     {
-        _dbContext.Eventos.Update(evento);
         await _dbContext.SaveChangesAsync(ct);
     }
 

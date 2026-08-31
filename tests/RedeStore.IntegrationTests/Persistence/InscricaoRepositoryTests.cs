@@ -27,15 +27,29 @@ public class InscricaoRepositoryTests
         Foto = "https://exemplo.com/retiro.jpg",
     };
 
-    private static Inscricao CriarInscricaoDeTeste(Guid eventoId, Guid? usuarioId = null, StatusInscricao status = StatusInscricao.Confirmada) => new()
+    private static Inscricao CriarInscricaoDeTeste(Guid eventoId, Guid usuarioId, StatusInscricao status = StatusInscricao.Confirmada) => new()
     {
         Id = Guid.NewGuid(),
         EventoId = eventoId,
-        UsuarioId = usuarioId ?? Guid.NewGuid(),
+        UsuarioId = usuarioId,
         Status = status,
         ValorPago = 50m,
         CriadoEm = DateTime.UtcNow,
     };
+
+    private static async Task<Usuario> CriarUsuarioAsync(IUsuarioRepository usuarioRepositorio)
+    {
+        var usuario = new Usuario
+        {
+            Id = Guid.NewGuid(),
+            Nome = "Fulano",
+            Email = $"{Guid.NewGuid()}@teste.com",
+            Papel = Papel.Jovem,
+            SenhaHash = "hash-fake",
+        };
+        await usuarioRepositorio.AdicionarAsync(usuario, CancellationToken.None);
+        return usuario;
+    }
 
     [Fact]
     public async Task AdicionarAsync_ThenBuscarPorIdAsync_RetornaInscricao()
@@ -43,9 +57,11 @@ public class InscricaoRepositoryTests
         using var scope = _factory.Services.CreateScope();
         var eventoRepositorio = scope.ServiceProvider.GetRequiredService<IEventoRepository>();
         var inscricaoRepositorio = scope.ServiceProvider.GetRequiredService<IInscricaoRepository>();
+        var usuarioRepositorio = scope.ServiceProvider.GetRequiredService<IUsuarioRepository>();
         var evento = CriarEventoDeTeste();
         await eventoRepositorio.AdicionarAsync(evento, CancellationToken.None);
-        var inscricao = CriarInscricaoDeTeste(evento.Id);
+        var usuario = await CriarUsuarioAsync(usuarioRepositorio);
+        var inscricao = CriarInscricaoDeTeste(evento.Id, usuario.Id);
 
         await inscricaoRepositorio.AdicionarAsync(inscricao, CancellationToken.None);
         var encontrada = await inscricaoRepositorio.BuscarPorIdAsync(inscricao.Id, CancellationToken.None);
@@ -60,12 +76,13 @@ public class InscricaoRepositoryTests
         using var scope = _factory.Services.CreateScope();
         var eventoRepositorio = scope.ServiceProvider.GetRequiredService<IEventoRepository>();
         var inscricaoRepositorio = scope.ServiceProvider.GetRequiredService<IInscricaoRepository>();
+        var usuarioRepositorio = scope.ServiceProvider.GetRequiredService<IUsuarioRepository>();
         var evento = CriarEventoDeTeste();
         await eventoRepositorio.AdicionarAsync(evento, CancellationToken.None);
-        var usuarioId = Guid.NewGuid();
-        await inscricaoRepositorio.AdicionarAsync(CriarInscricaoDeTeste(evento.Id, usuarioId, StatusInscricao.Cancelada), CancellationToken.None);
+        var usuario = await CriarUsuarioAsync(usuarioRepositorio);
+        await inscricaoRepositorio.AdicionarAsync(CriarInscricaoDeTeste(evento.Id, usuario.Id, StatusInscricao.Cancelada), CancellationToken.None);
 
-        var encontrada = await inscricaoRepositorio.BuscarConfirmadaPorEventoEUsuarioAsync(evento.Id, usuarioId, CancellationToken.None);
+        var encontrada = await inscricaoRepositorio.BuscarConfirmadaPorEventoEUsuarioAsync(evento.Id, usuario.Id, CancellationToken.None);
 
         Assert.Null(encontrada);
     }
@@ -76,15 +93,17 @@ public class InscricaoRepositoryTests
         using var scope = _factory.Services.CreateScope();
         var eventoRepositorio = scope.ServiceProvider.GetRequiredService<IEventoRepository>();
         var inscricaoRepositorio = scope.ServiceProvider.GetRequiredService<IInscricaoRepository>();
+        var usuarioRepositorio = scope.ServiceProvider.GetRequiredService<IUsuarioRepository>();
         var evento = CriarEventoDeTeste();
         await eventoRepositorio.AdicionarAsync(evento, CancellationToken.None);
-        var usuarioId = Guid.NewGuid();
-        var minha = CriarInscricaoDeTeste(evento.Id, usuarioId);
-        var deOutro = CriarInscricaoDeTeste(evento.Id);
+        var usuario = await CriarUsuarioAsync(usuarioRepositorio);
+        var outroUsuario = await CriarUsuarioAsync(usuarioRepositorio);
+        var minha = CriarInscricaoDeTeste(evento.Id, usuario.Id);
+        var deOutro = CriarInscricaoDeTeste(evento.Id, outroUsuario.Id);
         await inscricaoRepositorio.AdicionarAsync(minha, CancellationToken.None);
         await inscricaoRepositorio.AdicionarAsync(deOutro, CancellationToken.None);
 
-        var resultado = await inscricaoRepositorio.ListarPorUsuarioAsync(usuarioId, CancellationToken.None);
+        var resultado = await inscricaoRepositorio.ListarPorUsuarioAsync(usuario.Id, CancellationToken.None);
 
         Assert.Contains(resultado, i => i.Id == minha.Id);
         Assert.DoesNotContain(resultado, i => i.Id == deOutro.Id);
@@ -96,9 +115,11 @@ public class InscricaoRepositoryTests
         using var scope = _factory.Services.CreateScope();
         var eventoRepositorio = scope.ServiceProvider.GetRequiredService<IEventoRepository>();
         var inscricaoRepositorio = scope.ServiceProvider.GetRequiredService<IInscricaoRepository>();
+        var usuarioRepositorio = scope.ServiceProvider.GetRequiredService<IUsuarioRepository>();
         var evento = CriarEventoDeTeste();
         await eventoRepositorio.AdicionarAsync(evento, CancellationToken.None);
-        var inscricao = CriarInscricaoDeTeste(evento.Id);
+        var usuario = await CriarUsuarioAsync(usuarioRepositorio);
+        var inscricao = CriarInscricaoDeTeste(evento.Id, usuario.Id);
         await inscricaoRepositorio.AdicionarAsync(inscricao, CancellationToken.None);
 
         inscricao.Status = StatusInscricao.Cancelada;

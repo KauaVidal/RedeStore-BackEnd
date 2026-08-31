@@ -27,6 +27,20 @@ public class EventoRepositoryTests
         Foto = "https://exemplo.com/evento.jpg",
     };
 
+    private static async Task<Usuario> CriarUsuarioAsync(IUsuarioRepository usuarioRepositorio)
+    {
+        var usuario = new Usuario
+        {
+            Id = Guid.NewGuid(),
+            Nome = "Fulano",
+            Email = $"{Guid.NewGuid()}@teste.com",
+            Papel = Papel.Jovem,
+            SenhaHash = "hash-fake",
+        };
+        await usuarioRepositorio.AdicionarAsync(usuario, CancellationToken.None);
+        return usuario;
+    }
+
     [Fact]
     public async Task AdicionarAsync_ThenBuscarPorIdAsync_RetornaEvento()
     {
@@ -101,14 +115,17 @@ public class EventoRepositoryTests
         using var scope = _factory.Services.CreateScope();
         var eventoRepositorio = scope.ServiceProvider.GetRequiredService<IEventoRepository>();
         var inscricaoRepositorio = scope.ServiceProvider.GetRequiredService<IInscricaoRepository>();
+        var usuarioRepositorio = scope.ServiceProvider.GetRequiredService<IUsuarioRepository>();
         var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
         var evento = CriarEventoDeTeste();
         await eventoRepositorio.AdicionarAsync(evento, CancellationToken.None);
+        var usuarioConfirmado = await CriarUsuarioAsync(usuarioRepositorio);
+        var usuarioCancelado = await CriarUsuarioAsync(usuarioRepositorio);
         await inscricaoRepositorio.AdicionarAsync(new Inscricao
         {
             Id = Guid.NewGuid(),
             EventoId = evento.Id,
-            UsuarioId = Guid.NewGuid(),
+            UsuarioId = usuarioConfirmado.Id,
             Status = StatusInscricao.Confirmada,
             ValorPago = 0m,
             CriadoEm = DateTime.UtcNow,
@@ -117,7 +134,7 @@ public class EventoRepositoryTests
         {
             Id = Guid.NewGuid(),
             EventoId = evento.Id,
-            UsuarioId = Guid.NewGuid(),
+            UsuarioId = usuarioCancelado.Id,
             Status = StatusInscricao.Cancelada,
             ValorPago = 0m,
             CriadoEm = DateTime.UtcNow,

@@ -2,6 +2,7 @@ using RedeStore.Application.Eventos;
 using RedeStore.Application.Eventos.Dtos;
 using RedeStore.Domain.Entities;
 using RedeStore.Domain.Exceptions;
+using RedeStore.UnitTests.Common;
 using Xunit;
 
 namespace RedeStore.UnitTests.Eventos;
@@ -13,7 +14,7 @@ public class EventoServiceTests
 
     public EventoServiceTests()
     {
-        _sut = new EventoService(_repositorio);
+        _sut = new EventoService(_repositorio, new FakeUnitOfWork());
     }
 
     private static CriarEventoRequest RequestValido(string? titulo = null, int vagasTotais = 10) => new(
@@ -97,6 +98,49 @@ public class EventoServiceTests
 
         Assert.Equal("Novo Título", atualizado.Titulo);
         Assert.Equal(criado.Local, atualizado.Local);
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_ReduzindoVagasTotaisAbaixoDeInscricoesConfirmadas_LancaEventoVagasTotaisInsuficientesException()
+    {
+        var criado = await _sut.CriarAsync(RequestValido(vagasTotais: 10), CancellationToken.None);
+        _repositorio.EventosPorId[criado.Id].Inscricoes.Add(new Inscricao
+        {
+            Id = Guid.NewGuid(),
+            EventoId = criado.Id,
+            UsuarioId = Guid.NewGuid(),
+            Status = StatusInscricao.Confirmada,
+            ValorPago = 0m,
+            CriadoEm = DateTime.UtcNow,
+        });
+
+        await Assert.ThrowsAsync<EventoVagasTotaisInsuficientesException>(() =>
+            _sut.AtualizarAsync(
+                criado.Id,
+                new AtualizarEventoRequest(null, null, null, null, null, 0, null),
+                CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_ReduzindoVagasTotaisMasAindaAcimaDasConfirmadas_Sucede()
+    {
+        var criado = await _sut.CriarAsync(RequestValido(vagasTotais: 10), CancellationToken.None);
+        _repositorio.EventosPorId[criado.Id].Inscricoes.Add(new Inscricao
+        {
+            Id = Guid.NewGuid(),
+            EventoId = criado.Id,
+            UsuarioId = Guid.NewGuid(),
+            Status = StatusInscricao.Confirmada,
+            ValorPago = 0m,
+            CriadoEm = DateTime.UtcNow,
+        });
+
+        var atualizado = await _sut.AtualizarAsync(
+            criado.Id,
+            new AtualizarEventoRequest(null, null, null, null, null, 5, null),
+            CancellationToken.None);
+
+        Assert.Equal(4, atualizado.VagasRestantes);
     }
 
     [Fact]

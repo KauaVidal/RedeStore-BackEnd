@@ -49,12 +49,25 @@ namespace RedeStore.Infrastructure.Persistence.Migrations
                         principalTable: "Eventos",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Inscricoes_Usuarios_UsuarioId",
+                        column: x => x.UsuarioId,
+                        principalTable: "Usuarios",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Inscricoes_EventoId",
+                name: "IX_Inscricoes_EventoId_UsuarioId",
                 table: "Inscricoes",
-                column: "EventoId");
+                columns: new[] { "EventoId", "UsuarioId" },
+                unique: true,
+                filter: "\"Status\" = 'Confirmada'");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Inscricoes_UsuarioId",
+                table: "Inscricoes",
+                column: "UsuarioId");
         }
 
         /// <inheritdoc />

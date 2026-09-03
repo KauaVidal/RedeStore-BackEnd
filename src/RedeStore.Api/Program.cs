@@ -13,6 +13,9 @@ using RedeStore.Application.Eventos;
 using RedeStore.Application.Eventos.Dtos;
 using RedeStore.Application.Eventos.Validators;
 using RedeStore.Application.Inscricoes;
+using RedeStore.Application.Pedidos;
+using RedeStore.Application.Pedidos.Dtos;
+using RedeStore.Application.Pedidos.Validators;
 using RedeStore.Application.Produtos;
 using RedeStore.Application.Produtos.Dtos;
 using RedeStore.Application.Produtos.Validators;
@@ -36,6 +39,8 @@ builder.Services.AddScoped<IProdutoRepository, ProdutoRepository>();
 builder.Services.AddScoped<IEventoRepository, EventoRepository>();
 builder.Services.AddScoped<IInscricaoRepository, InscricaoRepository>();
 builder.Services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+builder.Services.AddScoped<IPedidoRepository, PedidoRepository>();
+builder.Services.AddScoped<IVariacaoRepository, VariacaoRepository>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddSingleton<IValidator<CadastroRequest>, CadastroRequestValidator>();
@@ -53,6 +58,9 @@ builder.Services.AddSingleton<IValidator<CriarEventoRequest>, CriarEventoRequest
 builder.Services.AddSingleton<IValidator<AtualizarEventoRequest>, AtualizarEventoRequestValidator>();
 
 builder.Services.AddScoped<IInscricaoService, InscricaoService>();
+
+builder.Services.AddScoped<IPedidoService, PedidoService>();
+builder.Services.AddSingleton<IValidator<CriarPedidoRequest>, CriarPedidoRequestValidator>();
 
 builder.Services.Configure<FrontendOptions>(builder.Configuration.GetSection(FrontendOptions.SectionName));
 builder.Services.Configure<ResendOptions>(builder.Configuration.GetSection(ResendOptions.SectionName));
@@ -133,6 +141,7 @@ app.MapUsuariosEndpoints();
 app.MapProdutosEndpoints();
 app.MapEventosEndpoints();
 app.MapInscricoesEndpoints();
+app.MapPedidosEndpoints();
 
 app.Run();
 

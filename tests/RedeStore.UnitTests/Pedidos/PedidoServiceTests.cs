@@ -1,3 +1,4 @@
+using RedeStore.Application.Common;
 using RedeStore.Application.Pedidos;
 using RedeStore.Application.Pedidos.Dtos;
 using RedeStore.Domain.Entities;
@@ -190,6 +191,126 @@ public class PedidoServiceTests
     {
         await Assert.ThrowsAsync<PedidoNaoEncontradoException>(() =>
             _sut.AvancarStatusAsync(Guid.NewGuid(), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task CriarAsync_ComMultiplosItens_DecrementaEstoqueEmOrdemDeterministicaPorVariacaoIdENaoPelaOrdemDoRequest()
+    {
+        var produtoAId = await CriarProdutoComVariacaoAsync(estoque: 10);
+        var produtoBId = await CriarProdutoComVariacaoAsync(estoque: 10);
+        var variacaoAId = (await _produtoRepositorio.BuscarPorIdAsync(produtoAId, CancellationToken.None))!.Variacoes[0].Id;
+        var variacaoBId = (await _produtoRepositorio.BuscarPorIdAsync(produtoBId, CancellationToken.None))!.Variacoes[0].Id;
+        var ordemEsperadaPorId = new[] { variacaoAId, variacaoBId }.OrderBy(id => id).ToList();
+
+        // Envia no request o item de MAIOR Id de variação primeiro, propositalmente na
+        // ordem oposta à ordem de decremento esperada (por Id), para provar que o
+        // decremento não segue a ordem em que os itens chegaram no request.
+        var produtoIdDoMaiorId = variacaoAId == ordemEsperadaPorId[1] ? produtoAId : produtoBId;
+        var produtoIdDoMenorId = variacaoAId == ordemEsperadaPorId[0] ? produtoAId : produtoBId;
+        var request = new CriarPedidoRequest(
+            Itens: [
+                new ItemPedidoRequest(produtoIdDoMaiorId, "M", "Preto", 1),
+                new ItemPedidoRequest(produtoIdDoMenorId, "M", "Preto", 1),
+            ],
+            FormaEntrega: "retirada",
+            Endereco: null);
+
+        await _sut.CriarAsync(Guid.NewGuid(), request, CancellationToken.None);
+
+        Assert.Equal(ordemEsperadaPorId, _variacaoRepositorio.OrdemDeChamadas);
+    }
+
+    [Fact]
+    public async Task CriarAsync_ComMultiplosItens_QuandoItemProcessadoPrimeiroNaOrdemDeLockFalhaPorEstoque_NaoTocaNoItemAindaNaoTentado()
+    {
+        var produtoAId = await CriarProdutoComVariacaoAsync(estoque: 10);
+        var produtoBId = await CriarProdutoComVariacaoAsync(estoque: 10);
+        var produtoA = (await _produtoRepositorio.BuscarPorIdAsync(produtoAId, CancellationToken.None))!;
+        var produtoB = (await _produtoRepositorio.BuscarPorIdAsync(produtoBId, CancellationToken.None))!;
+
+        // Identifica, em tempo de execução, qual dos dois produtos tem a variação de
+        // MENOR Id - esse é o que a passada de decremento (ordenada por Variacao.Id)
+        // tenta primeiro.
+        var (produtoIdMenorId, produtoIdMaiorId) = produtoA.Variacoes[0].Id.CompareTo(produtoB.Variacoes[0].Id) < 0
+            ? (produtoAId, produtoBId)
+            : (produtoBId, produtoAId);
+
+        // Pede uma quantidade maior que o estoque disponível para o item de menor Id (o
+        // primeiro a ser tentado), garantindo que a exceção seja lançada ANTES que o item
+        // de maior Id - enviado como item 1 no request - seja sequer tentado.
+        var request = new CriarPedidoRequest(
+            Itens: [
+                new ItemPedidoRequest(produtoIdMaiorId, "M", "Preto", 1),
+                new ItemPedidoRequest(produtoIdMenorId, "M", "Preto", 999),
+            ],
+            FormaEntrega: "retirada",
+            Endereco: null);
+
+        await Assert.ThrowsAsync<EstoqueInsuficienteException>(() =>
+            _sut.CriarAsync(Guid.NewGuid(), request, CancellationToken.None));
+
+        var produtoMaiorIdApos = await _produtoRepositorio.BuscarPorIdAsync(produtoIdMaiorId, CancellationToken.None);
+        Assert.Equal(10, produtoMaiorIdApos!.Variacoes[0].Estoque);
+
+        // Confirma que o item de maior Id nunca foi sequer tentado: apenas uma chamada de
+        // decremento ocorreu (a do item de menor Id, que falhou).
+        Assert.Single(_variacaoRepositorio.OrdemDeChamadas);
+
+        var pedidos = await _sut.ListarTodosAsync(CancellationToken.None);
+        Assert.Empty(pedidos);
+    }
+
+    [Fact]
+    public async Task CriarAsync_ComMesmoProdutoEmDuasLinhas_BuscaOProdutoApenasUmaVezEDecrementaAQuantidadeTotal()
+    {
+        var produtoId = await CriarProdutoComVariacaoAsync(estoque: 10, preco: 25m);
+        var produtoRepositorioContando = new ContandoProdutoRepository(_produtoRepositorio);
+        var variacaoRepositorio = new FakeVariacaoRepository(produtoRepositorioContando);
+        var sut = new PedidoService(produtoRepositorioContando, variacaoRepositorio, _pedidoRepositorio, new FakeUnitOfWork());
+        var request = new CriarPedidoRequest(
+            Itens: [
+                new ItemPedidoRequest(produtoId, "M", "Preto", 2),
+                new ItemPedidoRequest(produtoId, "M", "Preto", 3),
+            ],
+            FormaEntrega: "retirada",
+            Endereco: null);
+
+        var pedido = await sut.CriarAsync(Guid.NewGuid(), request, CancellationToken.None);
+
+        Assert.Equal(1, produtoRepositorioContando.ChamadasBuscarPorId);
+        Assert.Equal(2, pedido.Itens.Count);
+        Assert.All(pedido.Itens, i => Assert.Equal("Camiseta Rede", i.Nome));
+        Assert.All(pedido.Itens, i => Assert.Equal(25m, i.PrecoUnitario));
+        Assert.Equal(125m, pedido.ValorTotal);
+
+        var produtoAtualizado = await _produtoRepositorio.BuscarPorIdAsync(produtoId, CancellationToken.None);
+        Assert.Equal(5, produtoAtualizado!.Variacoes[0].Estoque);
+    }
+
+    private sealed class ContandoProdutoRepository : IProdutoRepository
+    {
+        private readonly IProdutoRepository _interno;
+
+        public ContandoProdutoRepository(IProdutoRepository interno) => _interno = interno;
+
+        public int ChamadasBuscarPorId { get; private set; }
+
+        public Task<List<Produto>> ListarAsync(CategoriaProduto? categoria, string? busca, CancellationToken ct) =>
+            _interno.ListarAsync(categoria, busca, ct);
+
+        public Task<List<Produto>> ListarDestaquesAsync(CancellationToken ct) => _interno.ListarDestaquesAsync(ct);
+
+        public Task<Produto?> BuscarPorIdAsync(Guid id, CancellationToken ct)
+        {
+            ChamadasBuscarPorId++;
+            return _interno.BuscarPorIdAsync(id, ct);
+        }
+
+        public Task AdicionarAsync(Produto produto, CancellationToken ct) => _interno.AdicionarAsync(produto, ct);
+
+        public Task AtualizarAsync(Produto produto, CancellationToken ct) => _interno.AtualizarAsync(produto, ct);
+
+        public Task RemoverAsync(Produto produto, CancellationToken ct) => _interno.RemoverAsync(produto, ct);
     }
 
     [Fact]

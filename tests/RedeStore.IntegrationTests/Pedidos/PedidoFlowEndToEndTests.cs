@@ -157,6 +157,43 @@ public class PedidoFlowEndToEndTests
     }
 
     [Fact]
+    public async Task MudancaDePrecoDoProdutoApósOPedido_NaoAlteraOSnapshotDoPedidoExistente()
+    {
+        using var clienteAdmin = await CriarClienteAdminAsync();
+        var criarProdutoResponse = await clienteAdmin.PostAsJsonAsync("/produtos", new CriarProdutoRequest(
+            Nome: $"Camiseta {Guid.NewGuid()}",
+            Categoria: "camisetas",
+            Preco: 79.90m,
+            Descricao: "Camiseta de teste",
+            Fotos: ["https://exemplo.com/foto.jpg"],
+            Destaque: false,
+            Variacoes: [new VariacaoRequest("M", "Preto", 10)]));
+        var produtoCriado = await criarProdutoResponse.Content.ReadFromJsonAsync<ProdutoDto>();
+        using var clienteJovem = await CriarClienteJovemAsync();
+
+        var criarPedidoResponse = await clienteJovem.PostAsJsonAsync("/pedidos", new CriarPedidoRequest(
+            [new ItemPedidoRequest(produtoCriado!.Id, "M", "Preto", 1)], "retirada", null));
+        criarPedidoResponse.EnsureSuccessStatusCode();
+        var pedidoCriado = await criarPedidoResponse.Content.ReadFromJsonAsync<PedidoDto>();
+        Assert.Equal(79.90m, pedidoCriado!.Itens[0].PrecoUnitario);
+        Assert.Equal(79.90m, pedidoCriado.ValorTotal);
+
+        var atualizarPrecoResponse = await clienteAdmin.PatchAsJsonAsync($"/produtos/{produtoCriado.Id}",
+            new AtualizarProdutoRequest(null, null, 199.90m, null, null, null, null));
+        atualizarPrecoResponse.EnsureSuccessStatusCode();
+        var produtoAtualizado = await atualizarPrecoResponse.Content.ReadFromJsonAsync<ProdutoDto>();
+        Assert.Equal(199.90m, produtoAtualizado!.Preco);
+
+        var meusPedidosResponse = await clienteJovem.GetAsync("/usuarios/me/pedidos");
+        meusPedidosResponse.EnsureSuccessStatusCode();
+        var meusPedidos = await meusPedidosResponse.Content.ReadFromJsonAsync<List<PedidoDto>>();
+        var pedidoAposMudancaDePreco = meusPedidos!.Single(p => p.Id == pedidoCriado.Id);
+
+        Assert.Equal(79.90m, pedidoAposMudancaDePreco.Itens[0].PrecoUnitario);
+        Assert.Equal(79.90m, pedidoAposMudancaDePreco.ValorTotal);
+    }
+
+    [Fact]
     public async Task DoisCheckoutsSimultaneosNaUltimaUnidadeDeEstoque_ApenasUmSucede()
     {
         using var clienteAdmin = await CriarClienteAdminAsync();

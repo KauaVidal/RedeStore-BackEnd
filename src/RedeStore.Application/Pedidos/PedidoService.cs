@@ -30,35 +30,57 @@ public sealed class PedidoService : IPedidoService
 
         await using var transacao = await _unitOfWork.IniciarTransacaoAsync(ct);
 
-        var itensPedido = new List<ItemPedido>();
+        // Passo 1 (resolução, sem locks): resolve produto + variação para cada item do
+        // carrinho, preservando a posição original de cada item para montar o snapshot
+        // final na mesma ordem em que o cliente os enviou.
+        var produtosPorId = new Dictionary<Guid, Produto>();
+        foreach (var produtoId in request.Itens.Select(i => i.ProdutoId).Distinct())
+        {
+            var produto = await _produtoRepository.BuscarPorIdAsync(produtoId, ct)
+                ?? throw new ProdutoNaoEncontradoException($"Produto '{produtoId}' não encontrado.");
+            produtosPorId[produtoId] = produto;
+        }
+
+        var itensResolvidos = new List<(Produto Produto, Variacao Variacao, ItemPedidoRequest ItemRequest)>();
         foreach (var itemRequest in request.Itens)
         {
-            var produto = await _produtoRepository.BuscarPorIdAsync(itemRequest.ProdutoId, ct)
-                ?? throw new ProdutoNaoEncontradoException($"Produto '{itemRequest.ProdutoId}' não encontrado.");
+            var produto = produtosPorId[itemRequest.ProdutoId];
 
             var variacao = produto.Variacoes.SingleOrDefault(v => v.Tamanho == itemRequest.Tamanho && v.Cor == itemRequest.Cor)
                 ?? throw new VariacaoNaoEncontradaException(
                     $"Produto '{produto.Nome}' não tem variação {itemRequest.Tamanho}/{itemRequest.Cor}.");
 
+            itensResolvidos.Add((produto, variacao, itemRequest));
+        }
+
+        // Passo 2 (decremento, com locks): decrementa o estoque em ordem determinística
+        // pelo Id da variação. Isso garante que checkouts concorrentes que disputam as
+        // mesmas variações sempre as bloqueiam na mesma ordem global, prevenindo deadlocks
+        // (40P01) que ocorreriam se cada checkout as bloqueasse na ordem em que o cliente
+        // as enviou (que pode ser oposta entre dois checkouts concorrentes).
+        foreach (var (produto, variacao, itemRequest) in itensResolvidos.OrderBy(i => i.Variacao.Id))
+        {
             var decrementou = await _variacaoRepository.DecrementarEstoqueAsync(variacao.Id, itemRequest.Quantidade, ct);
             if (!decrementou)
             {
                 throw new EstoqueInsuficienteException(
                     $"Estoque insuficiente para '{produto.Nome}' ({itemRequest.Tamanho}/{itemRequest.Cor}).");
             }
-
-            itensPedido.Add(new ItemPedido
-            {
-                Id = Guid.NewGuid(),
-                ProdutoId = produto.Id,
-                Nome = produto.Nome,
-                PrecoUnitario = produto.Preco,
-                FotoUrl = produto.Fotos.FirstOrDefault() ?? string.Empty,
-                Tamanho = itemRequest.Tamanho,
-                Cor = itemRequest.Cor,
-                Quantidade = itemRequest.Quantidade,
-            });
         }
+
+        // Passo 3: monta o snapshot na ordem original do pedido, não na ordem usada para o
+        // decremento.
+        var itensPedido = itensResolvidos.Select(i => new ItemPedido
+        {
+            Id = Guid.NewGuid(),
+            ProdutoId = i.Produto.Id,
+            Nome = i.Produto.Nome,
+            PrecoUnitario = i.Produto.Preco,
+            FotoUrl = i.Produto.Fotos.FirstOrDefault() ?? string.Empty,
+            Tamanho = i.ItemRequest.Tamanho,
+            Cor = i.ItemRequest.Cor,
+            Quantidade = i.ItemRequest.Quantidade,
+        }).ToList();
 
         var pedido = new Pedido
         {

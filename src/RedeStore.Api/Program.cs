@@ -141,6 +141,7 @@ app.MapUsuariosEndpoints();
 app.MapProdutosEndpoints();
 app.MapEventosEndpoints();
 app.MapInscricoesEndpoints();
+app.MapPedidosEndpoints();
 
 app.Run();
 

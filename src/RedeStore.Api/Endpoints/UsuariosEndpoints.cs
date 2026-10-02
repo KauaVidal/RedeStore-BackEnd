@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using RedeStore.Application.Auth;
+using RedeStore.Application.Auth.Dtos;
 
 namespace RedeStore.Api.Endpoints;
 
@@ -14,6 +15,13 @@ public static class UsuariosEndpoints
             var ehAdmin = user.IsInRole("admin");
             var usuario = await authService.ObterComAutorizacaoAsync(id, idUsuarioLogado, ehAdmin, ct);
             return Results.Ok(usuario);
-        }).RequireAuthorization();
+        })
+        .RequireAuthorization()
+        .WithTags("Usuários")
+        .WithSummary("Retorna um usuário pelo id")
+        .WithDescription("O próprio usuário pode consultar o seu id; admin pode consultar qualquer um. Demais casos retornam 403 ACESSO_NEGADO.")
+        .Produces<UsuarioDto>()
+        .ProducesProblem(StatusCodes.Status401Unauthorized)
+        .ProducesProblem(StatusCodes.Status403Forbidden);
     }
 }

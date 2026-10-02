@@ -35,6 +35,26 @@ A API sobe em `http://localhost:5052`. Em Development ficam disponíveis:
 - `http://localhost:5052/scalar` — interface interativa para testar os endpoints
 - `http://localhost:5052/openapi/v1.json` — documento OpenAPI ao vivo
 
+### Dados de exemplo (seed de desenvolvimento)
+
+O banco sobe vazio e não existe endpoint para criar admin. Para ter catálogo, eventos e um admin
+de teste:
+
+1. Com a API rodando, crie a conta `admin@rede.com` via `POST /auth/cadastro` (pela tela de cadastro
+   do front ou pelo Scalar). Crie também uma conta comum, ex.: `jovem@rede.com`.
+2. Rode o seed:
+
+   ```powershell
+   ./scripts/seed-dev.ps1
+   ```
+
+   Ele promove `admin@rede.com` a `admin` e cadastra 7 produtos (com variações e estoque) e 6
+   eventos com datas relativas a hoje (um no passado, para testar `apenasFuturos`). É idempotente:
+   produtos/eventos só são inseridos se as tabelas estiverem vazias.
+3. Faça login de novo com `admin@rede.com` — o papel fica gravado no token.
+
+O SQL fica em [`scripts/seed-dev.sql`](scripts/seed-dev.sql). **Somente para desenvolvimento.**
+
 ### Testes
 
 ```bash
@@ -55,6 +75,7 @@ tests/
   RedeStore.IntegrationTests
 docs/                       → documentação (API, OpenAPI, deploy, design)
 scripts/gerar-openapi.ps1   → regenera docs/openapi.json
+scripts/seed-dev.ps1        → popula o banco local com dados de exemplo (seed-dev.sql)
 ```
 
 ## Convenções da API

@@ -31,6 +31,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
                 ["Resend:ApiKey"] = "chave-fake-para-testes",
                 ["Resend:FromEmail"] = "nao-responda@teste.com",
                 ["Frontend:ResetPasswordUrl"] = "http://localhost:4200/redefinir-senha",
+                // Os testes fazem muitos logins/cadastros a partir do mesmo "IP"; o limite real é testado à parte.
+                ["RateLimiting:AuthPorMinuto"] = "100000",
             });
         });
 

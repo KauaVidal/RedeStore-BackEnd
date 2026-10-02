@@ -4,6 +4,7 @@
 -- front ou Scalar) — a senha usa o hash do ASP.NET Identity e não pode ser gerada por SQL.
 -- Idempotente: promove admin@rede.com a Admin e só insere produtos/eventos se as tabelas estiverem vazias.
 -- Atenção: o banco grava enums pelo NOME C# ('Admin', 'Camisetas'), não em minúsculas como o JSON.
+-- "Tamanhos"/"Cores" de "Produtos" são cópias derivadas das variações: mantenha-os coerentes.
 -- Se uma migration mudar as tabelas/colunas usadas aqui, atualize este script junto.
 
 BEGIN;
@@ -16,9 +17,9 @@ DECLARE
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM "Produtos") THEN
     p := gen_random_uuid();
-    INSERT INTO "Produtos" ("Id", "Nome", "Categoria", "Preco", "Descricao", "Fotos", "Destaque")
+    INSERT INTO "Produtos" ("Id", "Nome", "Categoria", "Preco", "Descricao", "Fotos", "Tamanhos", "Cores", "Destaque")
     VALUES (p, 'Camiseta REDE Clássica', 'Camisetas', 79.90, 'Camiseta 100% algodão com a marca REDE estampada no peito.',
-            ARRAY['https://picsum.photos/seed/camiseta-classica-rede/480/480'], true);
+            ARRAY['https://picsum.photos/seed/camiseta-classica-rede/480/480'], ARRAY['P','M','G','GG'], ARRAY['Preto','Amarelo'], true);
     INSERT INTO "Variacoes" ("Id", "ProdutoId", "Tamanho", "Cor", "Estoque") VALUES
       (gen_random_uuid(), p, 'P', 'Preto', 12), (gen_random_uuid(), p, 'P', 'Amarelo', 8),
       (gen_random_uuid(), p, 'M', 'Preto', 15), (gen_random_uuid(), p, 'M', 'Amarelo', 10),
@@ -26,9 +27,9 @@ BEGIN
       (gen_random_uuid(), p, 'GG', 'Preto', 4), (gen_random_uuid(), p, 'GG', 'Amarelo', 0);
 
     p := gen_random_uuid();
-    INSERT INTO "Produtos" ("Id", "Nome", "Categoria", "Preco", "Descricao", "Fotos", "Destaque")
+    INSERT INTO "Produtos" ("Id", "Nome", "Categoria", "Preco", "Descricao", "Fotos", "Tamanhos", "Cores", "Destaque")
     VALUES (p, 'Camiseta REDE Minimalista', 'Camisetas', 74.90, 'Estampa discreta, para o dia a dia.',
-            ARRAY['https://picsum.photos/seed/camiseta-minimalista-rede/480/480'], false);
+            ARRAY['https://picsum.photos/seed/camiseta-minimalista-rede/480/480'], ARRAY['P','M','G','GG'], ARRAY['Preto','Amarelo'], false);
     INSERT INTO "Variacoes" ("Id", "ProdutoId", "Tamanho", "Cor", "Estoque") VALUES
       (gen_random_uuid(), p, 'P', 'Preto', 10), (gen_random_uuid(), p, 'P', 'Amarelo', 10),
       (gen_random_uuid(), p, 'M', 'Preto', 10), (gen_random_uuid(), p, 'M', 'Amarelo', 10),
@@ -36,17 +37,17 @@ BEGIN
       (gen_random_uuid(), p, 'GG', 'Preto', 10), (gen_random_uuid(), p, 'GG', 'Amarelo', 10);
 
     p := gen_random_uuid();
-    INSERT INTO "Produtos" ("Id", "Nome", "Categoria", "Preco", "Descricao", "Fotos", "Destaque")
+    INSERT INTO "Produtos" ("Id", "Nome", "Categoria", "Preco", "Descricao", "Fotos", "Tamanhos", "Cores", "Destaque")
     VALUES (p, 'Camiseta REDE Edição Retiro', 'Camisetas', 84.90, 'Estampa exclusiva do último retiro da REDE.',
-            ARRAY['https://picsum.photos/seed/camiseta-retiro-rede/480/480'], false);
+            ARRAY['https://picsum.photos/seed/camiseta-retiro-rede/480/480'], ARRAY['P','M','G'], ARRAY['Preto'], false);
     INSERT INTO "Variacoes" ("Id", "ProdutoId", "Tamanho", "Cor", "Estoque") VALUES
       (gen_random_uuid(), p, 'P', 'Preto', 5), (gen_random_uuid(), p, 'M', 'Preto', 7),
       (gen_random_uuid(), p, 'G', 'Preto', 3);
 
     p := gen_random_uuid();
-    INSERT INTO "Produtos" ("Id", "Nome", "Categoria", "Preco", "Descricao", "Fotos", "Destaque")
+    INSERT INTO "Produtos" ("Id", "Nome", "Categoria", "Preco", "Descricao", "Fotos", "Tamanhos", "Cores", "Destaque")
     VALUES (p, 'Moletom REDE Essencial', 'Moletons', 139.90, 'Moletom canguru, forro macio.',
-            ARRAY['https://picsum.photos/seed/moletom-essencial-rede/480/480'], true);
+            ARRAY['https://picsum.photos/seed/moletom-essencial-rede/480/480'], ARRAY['P','M','G','GG'], ARRAY['Preto','Amarelo'], true);
     INSERT INTO "Variacoes" ("Id", "ProdutoId", "Tamanho", "Cor", "Estoque") VALUES
       (gen_random_uuid(), p, 'P', 'Preto', 5), (gen_random_uuid(), p, 'P', 'Amarelo', 5),
       (gen_random_uuid(), p, 'M', 'Preto', 5), (gen_random_uuid(), p, 'M', 'Amarelo', 5),
@@ -54,24 +55,24 @@ BEGIN
       (gen_random_uuid(), p, 'GG', 'Preto', 5), (gen_random_uuid(), p, 'GG', 'Amarelo', 5);
 
     p := gen_random_uuid();
-    INSERT INTO "Produtos" ("Id", "Nome", "Categoria", "Preco", "Descricao", "Fotos", "Destaque")
+    INSERT INTO "Produtos" ("Id", "Nome", "Categoria", "Preco", "Descricao", "Fotos", "Tamanhos", "Cores", "Destaque")
     VALUES (p, 'Moletom REDE Oversized', 'Moletons', 149.90, 'Corte oversized, streetwear.',
-            ARRAY['https://picsum.photos/seed/moletom-oversized-rede/480/480'], false);
+            ARRAY['https://picsum.photos/seed/moletom-oversized-rede/480/480'], ARRAY['M','G','GG'], ARRAY['Preto'], false);
     INSERT INTO "Variacoes" ("Id", "ProdutoId", "Tamanho", "Cor", "Estoque") VALUES
       (gen_random_uuid(), p, 'M', 'Preto', 6), (gen_random_uuid(), p, 'G', 'Preto', 8),
       (gen_random_uuid(), p, 'GG', 'Preto', 2);
 
     p := gen_random_uuid();
-    INSERT INTO "Produtos" ("Id", "Nome", "Categoria", "Preco", "Descricao", "Fotos", "Destaque")
+    INSERT INTO "Produtos" ("Id", "Nome", "Categoria", "Preco", "Descricao", "Fotos", "Tamanhos", "Cores", "Destaque")
     VALUES (p, 'Boné REDE', 'Acessorios', 59.90, 'Boné aba curva bordado.',
-            ARRAY['https://picsum.photos/seed/bone-rede/480/480'], true);
+            ARRAY['https://picsum.photos/seed/bone-rede/480/480'], ARRAY['Único'], ARRAY['Preto','Amarelo'], true);
     INSERT INTO "Variacoes" ("Id", "ProdutoId", "Tamanho", "Cor", "Estoque") VALUES
       (gen_random_uuid(), p, 'Único', 'Preto', 20), (gen_random_uuid(), p, 'Único', 'Amarelo', 15);
 
     p := gen_random_uuid();
-    INSERT INTO "Produtos" ("Id", "Nome", "Categoria", "Preco", "Descricao", "Fotos", "Destaque")
+    INSERT INTO "Produtos" ("Id", "Nome", "Categoria", "Preco", "Descricao", "Fotos", "Tamanhos", "Cores", "Destaque")
     VALUES (p, 'Squeeze REDE', 'Acessorios', 39.90, 'Squeeze 600ml com o logo da REDE.',
-            ARRAY['https://picsum.photos/seed/squeeze-rede/480/480'], false);
+            ARRAY['https://picsum.photos/seed/squeeze-rede/480/480'], ARRAY['Único'], ARRAY['Preto'], false);
     INSERT INTO "Variacoes" ("Id", "ProdutoId", "Tamanho", "Cor", "Estoque") VALUES
       (gen_random_uuid(), p, 'Único', 'Preto', 30);
   END IF;

@@ -11,3 +11,4 @@ tests/
 Dockerfile
 .dockerignore
 docker-compose.yml
+Dockerfile.vercel

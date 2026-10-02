@@ -8,6 +8,9 @@ namespace RedeStore.Api.Endpoints;
 
 public static class AuthEndpoints
 {
+    /// <summary>Política de rate limiting (por IP) das rotas públicas de autenticação.</summary>
+    public const string RateLimitPolicy = "AuthRateLimitPolicy";
+
     public static void MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
         var grupo = app.MapGroup("/auth").WithTags("Auth");
@@ -18,6 +21,7 @@ public static class AuthEndpoints
             return Results.Ok(resposta);
         })
         .AddEndpointFilter<ValidationFilter<CadastroRequest>>()
+        .RequireRateLimiting(RateLimitPolicy)
         .WithSummary("Cadastra um novo usuário (papel 'jovem') e já devolve o token")
         .WithDescription("Regras: nome com 2+ caracteres, e-mail válido e senha com 8+ caracteres. E-mail duplicado retorna 409 EMAIL_EM_USO.")
         .Produces<AuthResponse>()
@@ -30,6 +34,7 @@ public static class AuthEndpoints
             return Results.Ok(resposta);
         })
         .AddEndpointFilter<ValidationFilter<LoginRequest>>()
+        .RequireRateLimiting(RateLimitPolicy)
         .WithSummary("Autentica com e-mail e senha e devolve o token JWT")
         .WithDescription("E-mail inexistente ou senha incorreta retornam o mesmo 401 CREDENCIAIS_INVALIDAS.")
         .Produces<AuthResponse>()
@@ -68,6 +73,7 @@ public static class AuthEndpoints
             return Results.NoContent();
         })
         .AddEndpointFilter<ValidationFilter<RecuperarSenhaRequest>>()
+        .RequireRateLimiting(RateLimitPolicy)
         .WithSummary("Envia por e-mail o link de redefinição de senha")
         .WithDescription("Sempre retorna 204, exista ou não o e-mail (evita enumeração de usuários). O link aponta para Frontend:ResetPasswordUrl?token=... e expira em 1 hora.")
         .Produces(StatusCodes.Status204NoContent)
@@ -79,6 +85,7 @@ public static class AuthEndpoints
             return Results.NoContent();
         })
         .AddEndpointFilter<ValidationFilter<RedefinirSenhaRequest>>()
+        .RequireRateLimiting(RateLimitPolicy)
         .WithSummary("Redefine a senha usando o token recebido por e-mail")
         .WithDescription("O token é de uso único e expira em 1 hora. Token inválido, expirado ou já usado retorna 400 TOKEN_INVALIDO.")
         .Produces(StatusCodes.Status204NoContent)

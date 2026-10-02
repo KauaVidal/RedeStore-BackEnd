@@ -77,6 +77,7 @@ scripts/gerar-openapi.ps1   → regenera docs/openapi.json
 | `403` | Sem permissão (rota de admin ou `ACESSO_NEGADO`) |
 | `404` | Recurso não encontrado (`*_NAO_ENCONTRADO`) |
 | `409` | Conflito de regra de negócio (e-mail em uso, estoque, vagas, status final) |
+| `429` | Muitas tentativas nas rotas públicas de `/auth` (limite por IP, padrão 10/min) |
 
 ## Endpoints
 

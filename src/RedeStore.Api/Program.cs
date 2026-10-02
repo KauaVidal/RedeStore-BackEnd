@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using RedeStore.Api.Endpoints;
 using RedeStore.Api.Middleware;
+using RedeStore.Api.OpenApi;
 using RedeStore.Application.Auth;
 using RedeStore.Application.Auth.Dtos;
 using RedeStore.Application.Auth.Validators;
@@ -113,12 +114,16 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(OpenApiConfiguration.Configurar);
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
+// A geração do openapi.json em build (GetDocument.Insider) executa este Program sem banco disponível.
+var geracaoDeDocumentoOpenApi = System.Reflection.Assembly.GetEntryAssembly()?.GetName().Name == "GetDocument.Insider";
+
+if (!geracaoDeDocumentoOpenApi)
 {
+    using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<RedeStoreDbContext>();
     await dbContext.Database.MigrateAsync();
 }
@@ -140,7 +145,11 @@ app.MapGet("/health", async (RedeStoreDbContext db) =>
     return canConnect
         ? Results.Ok(new { status = "healthy", database = "connected" })
         : Results.Problem("Não foi possível conectar ao banco de dados.", statusCode: StatusCodes.Status503ServiceUnavailable);
-});
+})
+.WithTags("Health")
+.WithSummary("Verifica se a API está no ar e conectada ao banco")
+.Produces(StatusCodes.Status200OK)
+.ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
 app.MapAuthEndpoints();
 app.MapUsuariosEndpoints();

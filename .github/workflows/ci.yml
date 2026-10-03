@@ -105,9 +105,13 @@ jobs:
       - name: Instalar dotnet-ef
         run: dotnet tool install --global dotnet-ef --version "${{ env.DOTNET_EF_VERSION }}"
 
+      # Restore + build separados: se falharem, o erro aparece aqui, e não como "migration faltando".
+      - name: Restore e build da API
+        run: dotnet build src/RedeStore.Api/RedeStore.Api.csproj
+
       - name: Nenhuma mudança de modelo sem migration
         run: |
-          if ! dotnet ef migrations has-pending-model-changes \
+          if ! dotnet ef migrations has-pending-model-changes --no-build \
               --project src/RedeStore.Infrastructure --startup-project src/RedeStore.Api; then
             echo "::error::O modelo do EF mudou sem migration. Rode 'dotnet ef migrations add <Nome> --project src/RedeStore.Infrastructure --startup-project src/RedeStore.Api --output-dir Persistence/Migrations' e commite."
             exit 1

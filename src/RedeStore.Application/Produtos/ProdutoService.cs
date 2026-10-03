@@ -16,7 +16,7 @@ public sealed class ProdutoService : IProdutoService
 
     public async Task<List<ProdutoDto>> ListarAsync(string? categoria, string? busca, CancellationToken ct)
     {
-        var produtos = await _produtoRepository.ListarAsync(ParseCategoria(categoria), busca, ct);
+        var produtos = await _produtoRepository.ListarAsync(CategoriasProduto.Converter(categoria), busca, ct);
         return produtos.Select(MapearParaDto).ToList();
     }
 
@@ -124,21 +124,13 @@ public sealed class ProdutoService : IProdutoService
         produto.Cores = produto.Variacoes.Select(v => v.Cor).Distinct().ToList();
     }
 
-    private static CategoriaProduto? ParseCategoria(string? valor) => valor switch
-    {
-        "camisetas" => CategoriaProduto.Camisetas,
-        "moletons" => CategoriaProduto.Moletons,
-        "acessorios" => CategoriaProduto.Acessorios,
-        _ => null,
-    };
-
     private static CategoriaProduto ParseCategoriaObrigatoria(string valor) =>
-        ParseCategoria(valor) ?? throw new InvalidOperationException($"Categoria '{valor}' inválida.");
+        CategoriasProduto.Converter(valor) ?? throw new InvalidOperationException($"Categoria '{valor}' inválida.");
 
     private static ProdutoDto MapearParaDto(Produto produto) => new(
         produto.Id,
         produto.Nome,
-        produto.Categoria.ToString().ToLowerInvariant(),
+        CategoriasProduto.ParaValor(produto.Categoria),
         produto.Preco,
         produto.Descricao,
         produto.Fotos,

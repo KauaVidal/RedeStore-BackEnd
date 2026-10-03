@@ -35,6 +35,19 @@ public class CriarProdutoRequestValidatorTests
         Assert.False(resultado.IsValid);
     }
 
+    [Theory]
+    [InlineData("camisas")]
+    [InlineData("calcas")]
+    [InlineData("calcados")]
+    public void Validate_ComCategoriaNova_NaoRetornaErros(string categoria)
+    {
+        var request = RequestValido() with { Categoria = categoria };
+
+        var resultado = _validator.Validate(request);
+
+        Assert.True(resultado.IsValid);
+    }
+
     [Fact]
     public void Validate_ComPrecoZero_RetornaErro()
     {

@@ -113,7 +113,7 @@ Cada produto tem `variacoes` (tamanho + cor + estoque); `tamanhos` e `cores` sã
 
 | Método | Rota | Acesso | O que faz |
 |---|---|---|---|
-| GET | `/produtos` | 🌐 | Lista produtos. Query opcional: `categoria` (`camisetas`, `moletons`, `acessorios`) e `busca` (trecho do nome, sem diferenciar maiúsculas). |
+| GET | `/produtos` | 🌐 | Lista produtos. Query opcional: `categoria` (`camisetas`, `camisas`, `polos`, `regatas`, `moletons`, `jaquetas`, `calcas`, `bermudas`, `saias`, `vestidos`, `calcados`, `acessorios`) e `busca` (trecho do nome, sem diferenciar maiúsculas). |
 | GET | `/produtos/destaques` | 🌐 | Lista produtos com `destaque = true`. |
 | GET | `/produtos/{id}` | 🌐 | Detalhe do produto, incluindo variações e estoque. |
 | POST | `/produtos` | 🛡️ | Cria produto: `nome`, `categoria`, `preco` (> 0), `descricao`, `fotos?`, `destaque?`, `variacoes` (1+). |

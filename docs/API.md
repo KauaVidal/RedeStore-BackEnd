@@ -176,7 +176,7 @@ Outros status sem corpo de domínio:
 | datas (`dataHora`, `criadoEm`) | string | ISO 8601. `criadoEm` é sempre UTC (`...Z`). Envie `dataHora` em UTC (`2026-12-20T19:00:00Z`) — o filtro `apenasFuturos` compara com o horário UTC atual |
 | valores monetários (`preco`, `valorTotal`...) | number | decimal, ex.: `79.90` |
 | `papel` | string | `jovem` \| `admin` |
-| `categoria` (produto) | string | `camisetas` \| `moletons` \| `acessorios` |
+| `categoria` (produto) | string | `camisetas` \| `camisas` \| `polos` \| `regatas` \| `moletons` \| `jaquetas` \| `calcas` \| `bermudas` \| `saias` \| `vestidos` \| `calcados` \| `acessorios` |
 | `formaEntrega` | string | `retirada` \| `entrega` |
 | `status` (pedido) | string | `pago` \| `em_preparo` \| `retirado` \| `entregue` |
 | `status` (inscrição) | string | `confirmada` \| `cancelada` |
@@ -411,7 +411,7 @@ Lista produtos, com filtros opcionais combináveis.
 
 | Parâmetro | Onde | Tipo | Descrição |
 |---|---|---|---|
-| `categoria` | query | string | `camisetas` \| `moletons` \| `acessorios`. Valor desconhecido é **ignorado** (não filtra) |
+| `categoria` | query | string | `camisetas` \| `camisas` \| `polos` \| `regatas` \| `moletons` \| `jaquetas` \| `calcas` \| `bermudas` \| `saias` \| `vestidos` \| `calcados` \| `acessorios`. Valor desconhecido é **ignorado** (não filtra) |
 | `busca` | query | string | trecho do nome do produto, sem diferenciar maiúsculas/minúsculas |
 
 ```bash
@@ -474,7 +474,7 @@ Cria um produto.
 | Campo | Tipo | Obrigatório | Regras |
 |---|---|---|---|
 | `nome` | string | sim | não vazio |
-| `categoria` | string | sim | `camisetas` \| `moletons` \| `acessorios` |
+| `categoria` | string | sim | `camisetas` \| `camisas` \| `polos` \| `regatas` \| `moletons` \| `jaquetas` \| `calcas` \| `bermudas` \| `saias` \| `vestidos` \| `calcados` \| `acessorios` |
 | `preco` | number | sim | `> 0` |
 | `descricao` | string | sim | não vazio |
 | `fotos` | string[] | não | URLs das fotos; ausente/`null` vira `[]`. A primeira é usada como foto do item no pedido |
@@ -949,7 +949,7 @@ Todos os campos abaixo estão sempre presentes na resposta; os marcados com `?` 
 |---|---|
 | `id` | GUID |
 | `nome` | string |
-| `categoria` | `camisetas` \| `moletons` \| `acessorios` |
+| `categoria` | `camisetas` \| `camisas` \| `polos` \| `regatas` \| `moletons` \| `jaquetas` \| `calcas` \| `bermudas` \| `saias` \| `vestidos` \| `calcados` \| `acessorios` |
 | `preco` | number |
 | `descricao` | string |
 | `fotos` | string[] |

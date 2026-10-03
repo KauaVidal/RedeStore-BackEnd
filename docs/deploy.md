@@ -75,6 +75,23 @@ EF Core para que instâncias simultâneas não colidam. Na Vercel, cada *cold st
 
 Antes de migrations destrutivas, faça backup (no Neon: crie um *branch* do banco antes).
 
+### E-mails duplicados por maiúsculas/espaços (migration `NormalizarEmailsUsuarios`)
+
+Antes dessa migration, a API aceitava `joao@x.com` e `Joao@X.com` como contas diferentes. A migration
+passa os e-mails para minúsculas e sem espaços, mas quando já existem duplicatas assim ela normaliza só uma
+conta por e-mail (a que já estava em minúsculas; senão, a de menor `Id`) e deixa as demais como estão.
+Essas contas restantes não conseguem mais fazer login e precisam ser revisadas à mão (mesclar ou remover).
+Para listá-las depois de aplicar a migration:
+
+```sql
+SELECT "Id", "Nome", "Email"
+FROM "Usuarios"
+WHERE "Email" <> lower(btrim("Email"))
+ORDER BY lower(btrim("Email"));
+```
+
+Se a consulta não retornar nada, não havia duplicatas.
+
 ## Rodando a imagem localmente
 
 ```bash

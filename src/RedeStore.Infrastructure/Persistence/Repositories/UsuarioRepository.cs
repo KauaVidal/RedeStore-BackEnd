@@ -1,11 +1,15 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using RedeStore.Application.Common;
 using RedeStore.Domain.Entities;
+using RedeStore.Domain.Exceptions;
 
 namespace RedeStore.Infrastructure.Persistence.Repositories;
 
 public sealed class UsuarioRepository : IUsuarioRepository
 {
+    private const string IndiceEmailUnico = "IX_Usuarios_Email";
+
     private readonly RedeStoreDbContext _dbContext;
 
     public UsuarioRepository(RedeStoreDbContext dbContext)
@@ -22,12 +26,31 @@ public sealed class UsuarioRepository : IUsuarioRepository
     public async Task AdicionarAsync(Usuario usuario, CancellationToken ct)
     {
         _dbContext.Usuarios.Add(usuario);
-        await _dbContext.SaveChangesAsync(ct);
+        await SalvarAsync(usuario, ct);
     }
 
     public async Task AtualizarAsync(Usuario usuario, CancellationToken ct)
     {
         _dbContext.Usuarios.Update(usuario);
-        await _dbContext.SaveChangesAsync(ct);
+        await SalvarAsync(usuario, ct);
+    }
+
+    // A checagem do AuthService não cobre dois cadastros simultâneos com o mesmo e-mail:
+    // o índice único barra o segundo, e aqui isso vira 409 em vez de 500.
+    private async Task SalvarAsync(Usuario usuario, CancellationToken ct)
+    {
+        try
+        {
+            await _dbContext.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.UniqueViolation,
+            ConstraintName: IndiceEmailUnico,
+        })
+        {
+            _dbContext.Entry(usuario).State = EntityState.Detached;
+            throw new EmailEmUsoException($"O e-mail '{usuario.Email}' já está em uso.");
+        }
     }
 }

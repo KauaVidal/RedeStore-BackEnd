@@ -221,8 +221,12 @@ Cria uma conta nova com papel `jovem` e já devolve o token (o usuário sai loga
 | Campo | Tipo | Obrigatório | Regras |
 |---|---|---|---|
 | `nome` | string | sim | mínimo 2 caracteres |
-| `email` | string | sim | e-mail válido, único |
+| `email` | string | sim | e-mail válido, único (sem diferenciar maiúsculas/minúsculas) |
 | `senha` | string | sim | mínimo 8 caracteres |
+
+O e-mail é gravado sem espaços nas pontas e em minúsculas: `" Maria@Exemplo.com"` vira `maria@exemplo.com`
+e conflita com uma conta já existente em `maria@exemplo.com`. Login, recuperação de senha e troca de e-mail
+no perfil seguem a mesma regra. Nomes iguais são permitidos (homônimos); o que identifica a conta é o e-mail.
 
 ```bash
 curl -X POST http://localhost:5052/auth/cadastro \

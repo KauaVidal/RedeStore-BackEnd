@@ -89,6 +89,30 @@ public class AuthFlowEndToEndTests
     }
 
     [Fact]
+    public async Task PostCadastro_ComMesmoEmailEmOutraGrafia_Retorna409()
+    {
+        var id = Guid.NewGuid();
+        await _client.PostAsJsonAsync("/auth/cadastro", new CadastroRequest("Fulano", $"{id}@teste.com", "senha12345"));
+
+        var response = await _client.PostAsJsonAsync(
+            "/auth/cadastro", new CadastroRequest("Fulano", $"  {id.ToString().ToUpperInvariant()}@TESTE.com ", "senha12345"));
+
+        Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PostCadastro_SimultaneosComMesmoEmail_CriaUmaContaEORestoRecebe409()
+    {
+        var email = $"{Guid.NewGuid()}@teste.com";
+
+        var respostas = await Task.WhenAll(Enumerable.Range(0, 5).Select(_ =>
+            _factory.CreateClient().PostAsJsonAsync("/auth/cadastro", new CadastroRequest("Fulano", email, "senha12345"))));
+
+        Assert.Single(respostas, r => r.StatusCode == HttpStatusCode.OK);
+        Assert.All(respostas.Where(r => r.StatusCode != HttpStatusCode.OK), r => Assert.Equal(HttpStatusCode.Conflict, r.StatusCode));
+    }
+
+    [Fact]
     public async Task GetUsuarioPorId_ComoAdmin_PermiteVerOutroUsuario()
     {
         var emailAlvo = $"{Guid.NewGuid()}@teste.com";

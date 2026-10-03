@@ -35,17 +35,18 @@ public sealed class AuthService : IAuthService
 
     public async Task<AuthResponse> CadastrarAsync(CadastroRequest request, CancellationToken ct)
     {
-        var existente = await _usuarioRepository.BuscarPorEmailAsync(request.Email, ct);
+        var email = EmailUsuario.Normalizar(request.Email);
+        var existente = await _usuarioRepository.BuscarPorEmailAsync(email, ct);
         if (existente is not null)
         {
-            throw new EmailEmUsoException($"O e-mail '{request.Email}' já está em uso.");
+            throw new EmailEmUsoException($"O e-mail '{email}' já está em uso.");
         }
 
         var usuario = new Usuario
         {
             Id = Guid.NewGuid(),
-            Nome = request.Nome,
-            Email = request.Email,
+            Nome = request.Nome.Trim(),
+            Email = email,
             Papel = Papel.Jovem,
             SenhaHash = _passwordHasher.HashPassword(request.Senha),
         };
@@ -58,7 +59,7 @@ public sealed class AuthService : IAuthService
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request, CancellationToken ct)
     {
-        var usuario = await _usuarioRepository.BuscarPorEmailAsync(request.Email, ct);
+        var usuario = await _usuarioRepository.BuscarPorEmailAsync(EmailUsuario.Normalizar(request.Email), ct);
         if (usuario is null || !_passwordHasher.VerifyPassword(usuario.SenhaHash, request.Senha))
         {
             throw new CredenciaisInvalidasException("E-mail ou senha inválidos.");
@@ -89,19 +90,20 @@ public sealed class AuthService : IAuthService
         var usuario = await _usuarioRepository.BuscarPorIdAsync(usuarioId, ct)
             ?? throw new InvalidOperationException("Usuário autenticado não encontrado.");
 
-        if (request.Email is not null && request.Email != usuario.Email)
+        var novoEmail = request.Email is null ? null : EmailUsuario.Normalizar(request.Email);
+        if (novoEmail is not null && novoEmail != usuario.Email)
         {
-            var existente = await _usuarioRepository.BuscarPorEmailAsync(request.Email, ct);
-            if (existente is not null)
+            var existente = await _usuarioRepository.BuscarPorEmailAsync(novoEmail, ct);
+            if (existente is not null && existente.Id != usuario.Id)
             {
-                throw new EmailEmUsoException($"O e-mail '{request.Email}' já está em uso.");
+                throw new EmailEmUsoException($"O e-mail '{novoEmail}' já está em uso.");
             }
-            usuario.Email = request.Email;
+            usuario.Email = novoEmail;
         }
 
         if (request.Nome is not null)
         {
-            usuario.Nome = request.Nome;
+            usuario.Nome = request.Nome.Trim();
         }
 
         if (request.Telefone is not null)
@@ -115,7 +117,7 @@ public sealed class AuthService : IAuthService
 
     public async Task RecuperarSenhaAsync(string email, CancellationToken ct)
     {
-        var usuario = await _usuarioRepository.BuscarPorEmailAsync(email, ct);
+        var usuario = await _usuarioRepository.BuscarPorEmailAsync(EmailUsuario.Normalizar(email), ct);
         if (usuario is null)
         {
             return;

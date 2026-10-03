@@ -178,4 +178,87 @@ public class AuthServiceTests
         var fim = corpoHtml.IndexOf('"', inicio);
         return corpoHtml[inicio..fim];
     }
+
+    [Theory]
+    [InlineData("Fulano@Teste.com")]
+    [InlineData("FULANO@TESTE.COM")]
+    [InlineData("  fulano@teste.com  ")]
+    public async Task CadastrarAsync_ComMesmoEmailEmOutraGrafia_LancaEmailEmUsoException(string outraGrafia)
+    {
+        await _sut.CadastrarAsync(new CadastroRequest("Fulano", "fulano@teste.com", "senha12345"), CancellationToken.None);
+
+        await Assert.ThrowsAsync<EmailEmUsoException>(() =>
+            _sut.CadastrarAsync(new CadastroRequest("Fulano", outraGrafia, "senha12345"), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task CadastrarAsync_GravaEmailNormalizadoENomeSemEspacosExtras()
+    {
+        var resposta = await _sut.CadastrarAsync(
+            new CadastroRequest("  Fulano de Tal ", " Fulano.Tal@Teste.COM ", "senha12345"), CancellationToken.None);
+
+        Assert.Equal("fulano.tal@teste.com", resposta.Usuario.Email);
+        Assert.Equal("Fulano de Tal", resposta.Usuario.Nome);
+        Assert.NotNull(await _repositorio.BuscarPorEmailAsync("fulano.tal@teste.com", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task CadastrarAsync_ComNomeRepetidoEEmailDiferente_Permite()
+    {
+        await _sut.CadastrarAsync(new CadastroRequest("João Silva", "joao1@teste.com", "senha12345"), CancellationToken.None);
+
+        var segundo = await _sut.CadastrarAsync(new CadastroRequest("João Silva", "joao2@teste.com", "senha12345"), CancellationToken.None);
+
+        Assert.Equal("joao2@teste.com", segundo.Usuario.Email);
+    }
+
+    [Fact]
+    public async Task LoginAsync_ComEmailEmOutraGrafia_Autentica()
+    {
+        await _sut.CadastrarAsync(new CadastroRequest("Fulano", "Fulano10@Teste.com", "senha12345"), CancellationToken.None);
+
+        var resposta = await _sut.LoginAsync(new LoginRequest(" FULANO10@teste.com", "senha12345"), CancellationToken.None);
+
+        Assert.Equal("fulano10@teste.com", resposta.Usuario.Email);
+    }
+
+    [Fact]
+    public async Task AtualizarPerfilAsync_ComEmailDeOutroUsuarioEmOutraGrafia_LancaEmailEmUsoException()
+    {
+        await _sut.CadastrarAsync(new CadastroRequest("Fulano", "fulano11@teste.com", "senha12345"), CancellationToken.None);
+        var cadastro2 = await _sut.CadastrarAsync(new CadastroRequest("Ciclano", "ciclano11@teste.com", "senha12345"), CancellationToken.None);
+
+        await Assert.ThrowsAsync<EmailEmUsoException>(() =>
+            _sut.AtualizarPerfilAsync(cadastro2.Usuario.Id, new AtualizarPerfilRequest(null, " Fulano11@TESTE.com", null), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task AtualizarPerfilAsync_ComOProprioEmailEmOutraGrafia_NaoLancaENormaliza()
+    {
+        var cadastro = await _sut.CadastrarAsync(new CadastroRequest("Fulano", "fulano12@teste.com", "senha12345"), CancellationToken.None);
+
+        var atualizado = await _sut.AtualizarPerfilAsync(
+            cadastro.Usuario.Id, new AtualizarPerfilRequest(null, "FULANO12@Teste.com", null), CancellationToken.None);
+
+        Assert.Equal("fulano12@teste.com", atualizado.Email);
+    }
+
+    [Fact]
+    public async Task RecuperarSenhaAsync_ComEmailEmOutraGrafia_EnviaEmail()
+    {
+        await _sut.CadastrarAsync(new CadastroRequest("Fulano", "fulano13@teste.com", "senha12345"), CancellationToken.None);
+
+        await _sut.RecuperarSenhaAsync("Fulano13@Teste.com ", CancellationToken.None);
+
+        Assert.Single(_emailSender.Enviados);
+    }
+
+    [Theory]
+    [InlineData("joao@teste.com", "joao@teste.com")]
+    [InlineData("Joao@Teste.COM", "joao@teste.com")]
+    [InlineData("  joao@teste.com\t", "joao@teste.com")]
+    public void EmailUsuario_Normalizar_RemoveEspacosEUsaMinusculas(string entrada, string esperado)
+    {
+        Assert.Equal(esperado, EmailUsuario.Normalizar(entrada));
+    }
 }

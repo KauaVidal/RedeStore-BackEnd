@@ -622,7 +622,7 @@
           "Produtos"
         ],
         "summary": "Lista produtos, com filtro opcional por categoria e busca por nome",
-        "description": "categoria: 'camisetas', 'moletons' ou 'acessorios' (valor desconhecido é ignorado e não filtra). busca: trecho do nome, sem diferenciar maiúsculas/minúsculas.",
+        "description": "categoria: 'camisetas', 'camisas', 'polos', 'regatas', 'moletons', 'jaquetas', 'calcas', 'bermudas', 'saias', 'vestidos', 'calcados' ou 'acessorios' (valor desconhecido é ignorado e não filtra). busca: trecho do nome, sem diferenciar maiúsculas/minúsculas.",
         "parameters": [
           {
             "name": "categoria",
@@ -660,7 +660,7 @@
           "Produtos"
         ],
         "summary": "Cria um produto (admin)",
-        "description": "Regras: nome e descrição obrigatórios, categoria em 'camisetas'|'moletons'|'acessorios', preço > 0 e ao menos 1 variação (tamanho e cor obrigatórios, estoque >= 0). 'tamanhos' e 'cores' da resposta são derivados das variações.",
+        "description": "Regras: nome e descrição obrigatórios, categoria em 'camisetas'|'camisas'|'polos'|'regatas'|'moletons'|'jaquetas'|'calcas'|'bermudas'|'saias'|'vestidos'|'calcados'|'acessorios', preço > 0 e ao menos 1 variação (tamanho e cor obrigatórios, estoque >= 0). 'tamanhos' e 'cores' da resposta são derivados das variações.",
         "requestBody": {
           "content": {
             "application/json": {

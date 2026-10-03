@@ -5,15 +5,13 @@ namespace RedeStore.Application.Produtos.Validators;
 
 public sealed class AtualizarProdutoRequestValidator : AbstractValidator<AtualizarProdutoRequest>
 {
-    private static readonly string[] CategoriasValidas = ["camisetas", "moletons", "acessorios"];
-
     public AtualizarProdutoRequestValidator()
     {
         RuleFor(r => r.Nome).NotEmpty().When(r => r.Nome is not null);
         RuleFor(r => r.Categoria)
-            .Must(c => CategoriasValidas.Contains(c))
+            .Must(CategoriasProduto.EhValida)
             .When(r => r.Categoria is not null)
-            .WithMessage("Categoria deve ser 'camisetas', 'moletons' ou 'acessorios'.");
+            .WithMessage(CategoriasProduto.MensagemInvalida);
         RuleFor(r => r.Preco).GreaterThan(0).When(r => r.Preco.HasValue);
         RuleFor(r => r.Descricao).NotEmpty().When(r => r.Descricao is not null);
         RuleFor(r => r.Variacoes)

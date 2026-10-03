@@ -5,14 +5,12 @@ namespace RedeStore.Application.Produtos.Validators;
 
 public sealed class CriarProdutoRequestValidator : AbstractValidator<CriarProdutoRequest>
 {
-    private static readonly string[] CategoriasValidas = ["camisetas", "moletons", "acessorios"];
-
     public CriarProdutoRequestValidator()
     {
         RuleFor(r => r.Nome).NotEmpty();
         RuleFor(r => r.Categoria)
-            .Must(c => CategoriasValidas.Contains(c))
-            .WithMessage("Categoria deve ser 'camisetas', 'moletons' ou 'acessorios'.");
+            .Must(CategoriasProduto.EhValida)
+            .WithMessage(CategoriasProduto.MensagemInvalida);
         RuleFor(r => r.Preco).GreaterThan(0);
         RuleFor(r => r.Descricao).NotEmpty();
         RuleFor(r => r.Variacoes)

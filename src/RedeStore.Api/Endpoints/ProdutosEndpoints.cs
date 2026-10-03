@@ -16,7 +16,7 @@ public static class ProdutosEndpoints
             return Results.Ok(produtos);
         })
         .WithSummary("Lista produtos, com filtro opcional por categoria e busca por nome")
-        .WithDescription("categoria: 'camisetas', 'moletons' ou 'acessorios' (valor desconhecido é ignorado e não filtra). busca: trecho do nome, sem diferenciar maiúsculas/minúsculas.")
+        .WithDescription("categoria: 'camisetas', 'camisas', 'polos', 'regatas', 'moletons', 'jaquetas', 'calcas', 'bermudas', 'saias', 'vestidos', 'calcados' ou 'acessorios' (valor desconhecido é ignorado e não filtra). busca: trecho do nome, sem diferenciar maiúsculas/minúsculas.")
         .Produces<List<ProdutoDto>>();
 
         grupo.MapGet("/destaques", async (IProdutoService produtoService, CancellationToken ct) =>
@@ -44,7 +44,7 @@ public static class ProdutosEndpoints
         .RequireAuthorization("Admin")
         .AddEndpointFilter<ValidationFilter<CriarProdutoRequest>>()
         .WithSummary("Cria um produto (admin)")
-        .WithDescription("Regras: nome e descrição obrigatórios, categoria em 'camisetas'|'moletons'|'acessorios', preço > 0 e ao menos 1 variação (tamanho e cor obrigatórios, estoque >= 0). 'tamanhos' e 'cores' da resposta são derivados das variações.")
+        .WithDescription("Regras: nome e descrição obrigatórios, categoria em 'camisetas'|'camisas'|'polos'|'regatas'|'moletons'|'jaquetas'|'calcas'|'bermudas'|'saias'|'vestidos'|'calcados'|'acessorios', preço > 0 e ao menos 1 variação (tamanho e cor obrigatórios, estoque >= 0). 'tamanhos' e 'cores' da resposta são derivados das variações.")
         .Produces<ProdutoDto>()
         .ProducesValidationProblem()
         .ProducesProblem(StatusCodes.Status401Unauthorized)

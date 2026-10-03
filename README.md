@@ -42,6 +42,20 @@ dotnet test tests/RedeStore.UnitTests          # unitários
 dotnet test tests/RedeStore.IntegrationTests   # integração (precisa do Docker rodando — usa Testcontainers)
 ```
 
+### CI (GitHub Actions)
+
+Todo PR para a `main` (e todo push na `main`) roda [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+O PR está pronto para deploy quando os três jobs passam:
+
+| Job | O que verifica |
+|---|---|
+| **Build e testes** | Build em Release + testes unitários e de integração (Postgres real via Testcontainers). Os resultados `.trx` ficam como artefato da execução. |
+| **Migrations e OpenAPI** | Que nenhuma mudança no modelo do EF ficou sem migration (`dotnet ef migrations has-pending-model-changes`) e que `docs/openapi.json` está atualizado (senão, rode `./scripts/gerar-openapi.ps1`). |
+| **Imagem Docker e smoke test** | Build do `Dockerfile` e do `Dockerfile.vercel`; sobe a imagem de deploy em modo Production com um Postgres vazio, que precisa aplicar as migrations e responder `/health` com o banco conectado. |
+
+Para impedir merge com o CI vermelho, marque esses três checks como obrigatórios em
+*Settings → Branches → Branch protection rules* da `main`.
+
 ## Estrutura
 
 ```

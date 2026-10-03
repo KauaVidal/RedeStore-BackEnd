@@ -1,0 +1,182 @@
+# Pipeline de integração contínua do backend.
+# Roda em todo PR para a main (e em pushes na main) e responde: "está pronto para deploy?"
+#
+#   1. Build e testes      → compila em Release e roda testes unitários + de integração (Postgres via Testcontainers)
+#   2. Consistência        → nenhuma mudança de modelo sem migration; docs/openapi.json atualizado
+#   3. Imagem Docker       → builda a imagem de deploy, sobe com um Postgres real e checa o /health
+#
+# Os valores de configuração abaixo são fictícios: servem só para a API subir no CI.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  DOTNET_EF_VERSION: '10.0.*'
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  build-e-testes:
+    name: Build e testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache de pacotes NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore RedeStore.slnx
+
+      - name: Build (Release)
+        run: dotnet build RedeStore.slnx -c Release --no-restore
+
+      - name: Testes unitários
+        run: >
+          dotnet test tests/RedeStore.UnitTests -c Release --no-build
+          --logger "trx;LogFileName=unitarios.trx" --results-directory resultados-testes
+
+      # O ApiFactory sobe um postgres:17 via Testcontainers; o runner do GitHub já tem Docker.
+      - name: Testes de integração
+        run: >
+          dotnet test tests/RedeStore.IntegrationTests -c Release --no-build
+          --logger "trx;LogFileName=integracao.trx" --results-directory resultados-testes
+
+      - name: Publicar resultados dos testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-testes
+          path: resultados-testes
+          if-no-files-found: ignore
+          retention-days: 7
+
+  consistencia:
+    name: Migrations e OpenAPI
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Configuração mínima para o Program.cs subir em tempo de design (nenhuma conexão é aberta).
+      ConnectionStrings__Default: Host=localhost;Database=ci-design-time
+      Jwt__SigningKey: chave-ficticia-de-ci-com-pelo-menos-32-caracteres
+      Jwt__Issuer: RedeStore.CI
+      Jwt__Audience: RedeStore.CI
+      Resend__ApiKey: chave-ficticia
+      Resend__FromEmail: nao-responda@exemplo.com
+      Frontend__ResetPasswordUrl: http://localhost:4200/redefinir-senha
+      Cors__AllowedOrigin: http://localhost:4200
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache de pacotes NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Instalar dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version "${{ env.DOTNET_EF_VERSION }}"
+
+      - name: Nenhuma mudança de modelo sem migration
+        run: |
+          if ! dotnet ef migrations has-pending-model-changes \
+              --project src/RedeStore.Infrastructure --startup-project src/RedeStore.Api; then
+            echo "::error::O modelo do EF mudou sem migration. Rode 'dotnet ef migrations add <Nome> --project src/RedeStore.Infrastructure --startup-project src/RedeStore.Api --output-dir Persistence/Migrations' e commite."
+            exit 1
+          fi
+
+      - name: docs/openapi.json atualizado
+        run: |
+          dotnet build src/RedeStore.Api/RedeStore.Api.csproj -p:OpenApiGenerateDocuments=true
+          if ! git diff --exit-code -- docs/openapi.json; then
+            echo "::error file=docs/openapi.json::docs/openapi.json está desatualizado em relação aos endpoints. Rode scripts/gerar-openapi.ps1 e commite o arquivo."
+            exit 1
+          fi
+
+  imagem-docker:
+    name: Imagem Docker e smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: redestore
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build da imagem padrão (Dockerfile)
+        run: docker build -f Dockerfile -t redestore-api:ci-padrao .
+
+      - name: Build da imagem de deploy (Dockerfile.vercel)
+        run: docker build -f Dockerfile.vercel -t redestore-api:ci .
+
+      # Sobe a imagem de deploy como em produção (ASPNETCORE_ENVIRONMENT=Production, porta via PORT):
+      # aplica as migrations num banco vazio e precisa responder /health com o banco conectado.
+      - name: Subir a API
+        run: >
+          docker run -d --name api --network host
+          -e PORT=8080
+          -e "ConnectionStrings__Default=Host=localhost;Port=5432;Database=redestore;Username=postgres;Password=postgres"
+          -e Jwt__SigningKey=chave-ficticia-de-ci-com-pelo-menos-32-caracteres
+          -e Jwt__Issuer=RedeStore.CI
+          -e Jwt__Audience=RedeStore.CI
+          -e Resend__ApiKey=chave-ficticia
+          -e Resend__FromEmail=nao-responda@exemplo.com
+          -e Frontend__ResetPasswordUrl=https://exemplo.com/redefinir-senha
+          -e Cors__AllowedOrigin=https://exemplo.com
+          redestore-api:ci
+
+      - name: Smoke test (/health e /produtos)
+        run: |
+          for tentativa in $(seq 1 30); do
+            if resposta=$(curl -sf http://localhost:8080/health); then
+              echo "health: $resposta"
+              echo "$resposta" | grep -q '"database":"connected"'
+              curl -sf -o /dev/null -w "GET /produtos -> %{http_code}\n" http://localhost:8080/produtos
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::A API não respondeu /health em 60s."
+          exit 1
+
+      - name: Logs da API
+        if: always()
+        run: docker logs api || true
